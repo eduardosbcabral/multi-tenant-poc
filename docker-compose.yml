@@ -1,0 +1,40 @@
+version: '3.4'
+
+services:
+  multitenant.api:
+    image: ${DOCKER_REGISTRY-}multitenantapi
+    build:
+      context: .
+      dockerfile: MultiTenant.Api/Dockerfile
+    ports:
+      - "8081:80"
+    environment:
+      VIRTUAL_HOST: "*.test"
+      VIRTUAL_PORT: 8081
+    networks:
+      - mt-proxy
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./MultiTenant.Api/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+    networks:
+      - mt-proxy
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    ports:
+      - "8080:80"
+    networks:
+      - mt-proxy
+    volumes:
+      - "/var/run/docker.sock:/tmp/docker.sock:ro"
+      - "./nginx-proxy/vhost.d:/etc/nginx/vhost.d"
+      - "./nginx-proxy/html:/usr/share/nginx/html"
+      - "./nginx-proxy/conf.d:/etc/nginx/conf.d"
+
+networks:
+  mt-proxy:
